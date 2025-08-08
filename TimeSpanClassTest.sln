@@ -1,0 +1,18 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2012
+# Clarion 2.1.0.2447
+Project("{12B76EC0-1D7B-4FA7-A7D0-C524288B48A1}") = "TimeSpanClassTest", "TimeSpanClassTest.cwproj", "{AE2523AE-3DEC-469F-85FA-0B83BCF31F4A}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Win32 = Debug|Win32
+		Release|Win32 = Release|Win32
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{AE2523AE-3DEC-469F-85FA-0B83BCF31F4A}.Debug|Win32.Build.0 = Debug|Win32
+		{AE2523AE-3DEC-469F-85FA-0B83BCF31F4A}.Debug|Win32.ActiveCfg = Debug|Win32
+		{AE2523AE-3DEC-469F-85FA-0B83BCF31F4A}.Release|Win32.Build.0 = Release|Win32
+		{AE2523AE-3DEC-469F-85FA-0B83BCF31F4A}.Release|Win32.ActiveCfg = Release|Win32
+	EndGlobalSection
+EndGlobal
