@@ -57,3 +57,31 @@ DateTimeClass.Compare PROCEDURE(DateTimeClass other)
 DateTimeClass.IsZero  PROCEDURE()
   CODE
   RETURN CHOOSE(SELF.Date = 0 AND SELF.Time = 0, TRUE, FALSE)
+
+!!! <summary>
+!!! Get the day of week for the stored date.
+!!! </summary>
+!!! <returns>1=Sunday, 2=Monday, ..., 7=Saturday</returns>
+DateTimeClass.DayOfWeek   PROCEDURE()
+  CODE
+  ! Clarion dates start from Dec 28, 1800 (a Sunday)
+  ! Using modulo 7 gives us day of week (0=Saturday, 1=Sunday, etc.)
+  ! We adjust to make 1=Sunday, 2=Monday, ..., 7=Saturday
+  RETURN (SELF.Date % 7) + 1
+
+!!! <summary>
+!!! Get the day of year for the stored date.
+!!! </summary>
+!!! <returns>1-366, representing the day of the year</returns>
+DateTimeClass.DayOfYear   PROCEDURE()
+CurrentYear                 LONG
+FirstDayOfYear              LONG
+  CODE
+  ! Get the current year
+  CurrentYear = YEAR(SELF.Date)
+  
+  ! Calculate the first day of the current year (January 1)
+  FirstDayOfYear = DATE(CurrentYear, 1, 1)
+  
+  ! Calculate days since January 1st of the current year, plus 1
+  RETURN SELF.Date - FirstDayOfYear + 1

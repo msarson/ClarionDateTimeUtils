@@ -3,7 +3,7 @@
 A small Clarion project demonstrating a DateTime container and a TimeSpan calculator.
 
 ## Contents
-- DateTimeClass: A minimal class that stores a DATE and TIME, with helpers to set/get and compare.
+- DateTimeClass: A minimal class that stores a DATE and TIME, with helpers to set/get, compare, and get date information (day of week, day of year).
 - TimeSpanClass: Computes the span between two DateTime values in seconds, minutes, hours, days, weeks, months, and years.
 
 ## Key files
@@ -42,6 +42,10 @@ Format a timespan as a human-readable string:
 ```clarion
 str = ts.FormatTimeSpan(2)  ! Format with 2 levels of detail (e.g., "1 day, 2 hours")
 ```
+
+## DateTimeClass Methods
+- `DayOfWeek()`: Returns the day of week (1=Sunday, 2=Monday, ..., 7=Saturday)
+- `DayOfYear()`: Returns the day of year (1-366)
 
 ## Notes
 - TIME is in 1/100 seconds since midnight (Clarion TIME).
