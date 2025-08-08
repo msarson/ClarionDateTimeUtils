@@ -25,13 +25,13 @@ TimeSpanClass.Destruct    PROCEDURE()
 
 !!! <summary>
 !!! Initialize start/end values and configuration flags.
-!!! </summary>
 !!! <param name="pStartDate">Start DATE</param>
 !!! <param name="pStartTime">Start TIME (1/100 sec since midnight)</param>
 !!! <param name="pEndDate">End DATE</param>
 !!! <param name="pEndTime">End TIME (1/100 sec since midnight)</param>
 !!! <param name="pIncludeEnd">Include terminal boundary in results</param>
 !!! <param name="pSigned">Return signed results when start > end</param>
+!Init Method  
 TimeSpanClass.Init    PROCEDURE(LONG pStartDate, LONG pStartTime, LONG pEndDate, LONG pEndTime, BOOL pIncludeEnd, BOOL pSigned)
   CODE
   SELF.IncludeEnd = pIncludeEnd
@@ -310,6 +310,47 @@ years                   LONG
 
   years = SELF.ApplyIncludeEnd(years, UNIT:Years)
   RETURN SELF.ApplySignAndReturn(years, sign)
+
+!!! <summary>
+!!! Create a TimeSpanClass instance from a number of seconds.
+!!! </summary>
+!!! <param name="seconds">Number of seconds</param>
+!!! <returns>New TimeSpanClass instance</returns>
+TimeSpanClass.FromSeconds PROCEDURE(LONG seconds)
+ts    &TimeSpanClass
+now   LONG
+  CODE
+  ts &= NEW TimeSpanClass
+  now = TODAY()
+  ts.Init(now, 0, now, seconds * TICKS:PerSecond)
+  RETURN ts
+
+!!! <summary>
+!!! Create a TimeSpanClass instance from a number of minutes.
+!!! </summary>
+!!! <param name="minutes">Number of minutes</param>
+!!! <returns>New TimeSpanClass instance</returns>
+TimeSpanClass.FromMinutes PROCEDURE(LONG minutes)
+  CODE
+  RETURN SELF.FromSeconds(minutes * SECS:PerMinute)
+
+!!! <summary>
+!!! Create a TimeSpanClass instance from a number of hours.
+!!! </summary>
+!!! <param name="hours">Number of hours</param>
+!!! <returns>New TimeSpanClass instance</returns>
+TimeSpanClass.FromHours PROCEDURE(LONG hours)
+  CODE
+  RETURN SELF.FromSeconds(hours * SECS:PerHour)
+
+!!! <summary>
+!!! Create a TimeSpanClass instance from a number of days.
+!!! </summary>
+!!! <param name="days">Number of days</param>
+!!! <returns>New TimeSpanClass instance</returns>
+TimeSpanClass.FromDays PROCEDURE(LONG days)
+  CODE
+  RETURN SELF.FromSeconds(days * SECS:PerDay)
 
 !!! <summary>
 !!! Format the time span as a human-readable string.

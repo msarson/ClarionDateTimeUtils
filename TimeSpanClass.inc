@@ -27,7 +27,8 @@ EndDT           &DateTimeClass
 IncludeEnd      BOOL
 Signed          BOOL
 Construct            PROCEDURE()
-Destruct             PROCEDURE()
+Destruct        PROCEDURE()
+
 Init                 PROCEDURE(LONG pStartDate, LONG pStartTime, LONG pEndDate, LONG pEndTime, BOOL pIncludeEnd = FALSE, BOOL pSigned = TRUE)
 InitFromDateTime     PROCEDURE(DateTimeClass pStartDT, DateTimeClass pEndDT, BOOL pIncludeEnd = FALSE, BOOL pSigned = TRUE)
 GetSpan              PROCEDURE(BYTE Unit), LONG
@@ -53,5 +54,10 @@ ValidateDates        PROCEDURE(), BOOL, PRIVATE
 ApplySignAndReturn   PROCEDURE(LONG value, SIGNED sign), LONG, PRIVATE
 ApplySignAndReturnReal PROCEDURE(REAL value, SIGNED sign), REAL, PRIVATE
 ApplyIncludeEnd      PROCEDURE(LONG value, BYTE unit), LONG, PRIVATE
+! Static methods
+FromSeconds          PROCEDURE(LONG seconds), *TimeSpanClass
+FromMinutes          PROCEDURE(LONG minutes), *TimeSpanClass
+FromHours            PROCEDURE(LONG hours), *TimeSpanClass
+FromDays             PROCEDURE(LONG days), *TimeSpanClass
               END
 

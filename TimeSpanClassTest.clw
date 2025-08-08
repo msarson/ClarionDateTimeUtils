@@ -4,21 +4,14 @@
 RunTimeSpanTests    PROCEDURE
 AssertEq    PROCEDURE(STRING Name, LONG Got, LONG Expected, STRING Units)
 MakeTime    PROCEDURE(SHORT Hours, SHORT Minutes, SHORT Seconds),LONG
-! Factory functions for TimeSpanClass
-CreateTimeSpanFromSeconds   PROCEDURE(LONG seconds), *TimeSpanClass
-CreateTimeSpanFromMinutes   PROCEDURE(LONG minutes), *TimeSpanClass
-CreateTimeSpanFromHours PROCEDURE(LONG hours), *TimeSpanClass
-CreateTimeSpanFromDays  PROCEDURE(LONG days), *TimeSpanClass
           END
 
   include('TimeSpanClass.inc'),ONCE
-
 
 span      LONG
 TestCount     LONG
 FailCount     LONG
 FailLog   CSTRING(8192)
-
   CODE
   RunTimeSpanTests()
   SETCLIPBOARD('TimeSpanClass Tests: ' & TestCount & ' run, ' & (TestCount - FailCount) & ' passed, ' & FailCount & ' failed.' & |
@@ -147,68 +140,25 @@ got                 LONG
   ts.Init(DATE(8,2,2025), MakeTime(7,0,0), DATE(8,1,2025), MakeTime(8,0,0), FALSE, TRUE)
   AssertEq('Hours reverse signed: -23 hrs', ts.Hours(), -23, ' hr')
 
-! Test factory functions
-  tsRef &= CreateTimeSpanFromSeconds(3600)
-  AssertEq('Factory: 3600 seconds', tsRef.Seconds(), 3600, ' sec')
-  AssertEq('Factory: 3600 seconds as minutes', tsRef.Minutes(), 60, ' min')
+! Test static methods
+  tsRef &= tsref.FromSeconds(3600)
+  AssertEq('Static: 3600 seconds', tsRef.Seconds(), 3600, ' sec')
+  AssertEq('Static: 3600 seconds as minutes', tsRef.Minutes(), 60, ' min')
+  DISPOSE(tsRef)
+  
+  tsRef &= tsref.FromMinutes(60)
+  AssertEq('Static: 60 minutes', tsRef.Minutes(), 60, ' min')
+  AssertEq('Static: 60 minutes as hours', tsRef.Hours(), 1, ' hr')
+  DISPOSE(tsRef)
+  
+  tsRef &= tsref.FromHours(24)
+  AssertEq('Static: 24 hours', tsRef.Hours(), 24, ' hr')
+  AssertEq('Static: 24 hours as days', tsRef.Days(), 1, ' days')
+  DISPOSE(tsRef)
+  
+  tsRef &= tsref.FromDays(7)
+  AssertEq('Static: 7 days', tsRef.Days(), 7, ' days')
+  AssertEq('Static: 7 days as weeks', tsRef.Weeks(), 1, ' weeks')
   DISPOSE(tsRef)
 
-  tsRef &= CreateTimeSpanFromMinutes(60)
-  AssertEq('Factory: 60 minutes', tsRef.Minutes(), 60, ' min')
-  AssertEq('Factory: 60 minutes as hours', tsRef.Hours(), 1, ' hr')
-  DISPOSE(tsRef)
-
-  tsRef &= CreateTimeSpanFromHours(24)
-  AssertEq('Factory: 24 hours', tsRef.Hours(), 24, ' hr')
-  AssertEq('Factory: 24 hours as days', tsRef.Days(), 1, ' days')
-  DISPOSE(tsRef)
-
-  tsRef &= CreateTimeSpanFromDays(7)
-  AssertEq('Factory: 7 days', tsRef.Days(), 7, ' days')
-  AssertEq('Factory: 7 days as weeks', tsRef.Weeks(), 1, ' weeks')
-  DISPOSE(tsRef)
-
-! Factory function implementations
-
-!!! <summary>
-!!! Create a TimeSpanClass instance from a number of seconds.
-!!! </summary>
-!!! <param name="seconds">Number of seconds</param>
-!!! <returns>New TimeSpanClass instance</returns>
-CreateTimeSpanFromSeconds PROCEDURE(LONG seconds)
-ts    &TimeSpanClass
-now   LONG
-  CODE
-  ts &= NEW TimeSpanClass
-  ts.Construct()
-  now = TODAY()
-  ts.Init(now, 0, now, seconds * TICKS:PerSecond)
-  RETURN ts
-
-!!! <summary>
-!!! Create a TimeSpanClass instance from a number of minutes.
-!!! </summary>
-!!! <param name="minutes">Number of minutes</param>
-!!! <returns>New TimeSpanClass instance</returns>
-CreateTimeSpanFromMinutes PROCEDURE(LONG minutes)
-  CODE
-  RETURN CreateTimeSpanFromSeconds(minutes * SECS:PerMinute)
-
-!!! <summary>
-!!! Create a TimeSpanClass instance from a number of hours.
-!!! </summary>
-!!! <param name="hours">Number of hours</param>
-!!! <returns>New TimeSpanClass instance</returns>
-CreateTimeSpanFromHours PROCEDURE(LONG hours)
-  CODE
-  RETURN CreateTimeSpanFromSeconds(hours * SECS:PerHour)
-
-!!! <summary>
-!!! Create a TimeSpanClass instance from a number of days.
-!!! </summary>
-!!! <param name="days">Number of days</param>
-!!! <returns>New TimeSpanClass instance</returns>
-CreateTimeSpanFromDays PROCEDURE(LONG days)
-  CODE
-  RETURN CreateTimeSpanFromSeconds(days * SECS:PerDay)
 
