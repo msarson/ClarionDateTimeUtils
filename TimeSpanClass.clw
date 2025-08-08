@@ -358,7 +358,7 @@ TimeSpanClass.FromDays PROCEDURE(LONG days)
 !!! <param name="DetailLevel">Level of detail: 1=highest unit only, 2=two highest units, 3=all units</param>
 !!! <returns>Formatted string (e.g., "1 day, 2 hours, 30 minutes")</returns>
 TimeSpanClass.FormatTimeSpan PROCEDURE(BYTE DetailLevel)
-result      STRING(100)
+result      CSTRING(100)
 years       LONG
 months      LONG
 days        LONG
