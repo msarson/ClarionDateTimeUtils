@@ -32,6 +32,16 @@ TimeSpanClass.Destruct    PROCEDURE()
 !!! <param name="pIncludeEnd">Include terminal boundary in results</param>
 !!! <param name="pSigned">Return signed results when start > end</param>
 !Init Method  
+!!! <summary>
+!!! Initialize start/end values and configuration flags.
+!!! </summary>
+!!! <param name="pStartDate">Start DATE</param>
+!!! <param name="pStartTime">Start TIME (1/100 sec since midnight)</param>
+!!! <param name="pEndDate">End DATE</param>
+!!! <param name="pEndTime">End TIME (1/100 sec since midnight)</param>
+!!! <param name="pIncludeEnd">Include terminal boundary in results</param>
+!!! <param name="pSigned">Return signed results when start > end</param>
+!Init Method
 TimeSpanClass.Init    PROCEDURE(LONG pStartDate, LONG pStartTime, LONG pEndDate, LONG pEndTime, BOOL pIncludeEnd, BOOL pSigned)
   CODE
   SELF.IncludeEnd = pIncludeEnd
@@ -439,3 +449,215 @@ unitsAdded  BYTE
   IF result = sign THEN result = '0 seconds'.
   
   RETURN CLIP(result)
+  
+  
+!!! <summary>
+!!! Format the time span as a string using the specified format.
+!!! </summary>
+!!! <param name="format">Format string with special tokens: d (days), H (total hours), h (hours component),
+!!! m (minutes), s (seconds), f (fractional seconds). Use doubled tokens (dd, hh, etc.) for zero-padding.
+!!! Supports quoted text ('text' or "text") and literal blocks in braces ({text}).</param>
+!!! <returns>Formatted string according to the specified format</returns>
+TimeSpanClass.ToString PROCEDURE(STRING format)
+Result          CSTRING(256)
+Fmt             CSTRING(128)
+len             LONG
+i               LONG
+ch              STRING(1)
+n               LONG
+QuoteChar       STRING(1)
+
+! components
+sDate           LONG
+sTime           LONG
+eDate           LONG
+eTime           LONG
+sign            SIGNED
+signChar        CSTRING(2)
+totalSecs       LONG        ! whole seconds across the span
+totHours        LONG
+remSecs         LONG
+days            LONG
+hours           LONG
+minutes         LONG
+seconds         LONG
+hundredths                LONG        ! 0..99 from TIME remainder
+BlockDepth LONG
+CODE
+  IF NOT SELF.ValidateDates() THEN RETURN ''.
+
+  ! Normalize order, get sign (+1 / -1)
+  sign     = SELF.BindDateTimes(sDate, sTime, eDate, eTime)
+  signChar = CHOOSE(sign < 0 AND SELF.Signed, '-', '')
+
+  ! Base difference in whole seconds
+  totalSecs = (eDate - sDate) * SECS:PerDay + (eTime - sTime) / TICKS:PerSecond
+  IF SELF.IncludeEnd THEN totalSecs += 1.
+
+  ! Fractional remainder from TIME only (days are multiples of 100 ticks)
+  hundredths = (eTime - sTime) % TICKS:PerSecond
+  IF hundredths < 0 THEN hundredths += TICKS:PerSecond.
+
+  ! Apply Unsigned if needed
+  IF NOT SELF.Signed AND totalSecs < 0
+    totalSecs = -totalSecs
+  END
+
+  ! Split into components
+  days    = INT(totalSecs / SECS:PerDay)
+  remSecs = totalSecs - days * SECS:PerDay
+
+  hours   = INT(remSecs / SECS:PerHour)
+  remSecs -= hours * SECS:PerHour
+
+  minutes = INT(remSecs / SECS:PerMinute)
+  remSecs -= minutes * SECS:PerMinute
+
+  seconds = remSecs
+  totHours = totalSecs / SECS:PerHour   ! total hours across entire span
+
+  ! Default format ("c"-like): [-]d.hh:mm:ss
+  IF format = '' OR UPPER(CLIP(format)) = 'C'
+    Result = signChar & |
+             days & '.' & |
+             FORMAT(hours, @N02) & ':' & |
+             FORMAT(minutes, @N02) & ':' & |
+             FORMAT(seconds, @N02)
+    RETURN Result
+  END
+
+  ! Custom format parser (run-length, with quotes and {literal} blocks)
+  Fmt = CLIP(format)
+  len = LEN(Fmt)
+  Result = signChar
+  i = 1
+  LOOP WHILE i <= len
+    ch = Fmt[i]
+
+        ! 1) { ... } literal block, with nesting and {{ / }} for literal braces
+    IF ch = '{'
+      
+      BlockDepth = 1
+      i += 1
+      LOOP WHILE i <= len
+        ch = Fmt[i]
+
+        ! literal doubled open brace -> output '{' and skip without affecting depth
+        IF ch = '{' AND i < len AND Fmt[i + 1] = '{'
+          Result = Result & '{'
+          i += 2
+          CYCLE
+        END
+
+        ! literal doubled close brace -> output '}' and skip without affecting depth
+        IF ch = '}' AND i < len AND Fmt[i + 1] = '}'
+          Result = Result & '}'
+          i += 2
+          CYCLE
+        END
+
+        IF ch = '{'
+          BlockDepth += 1
+          Result = Result & '{'
+          i += 1
+          CYCLE
+        ELSIF ch = '}'
+          BlockDepth -= 1
+          i += 1
+          IF BlockDepth = 0
+            BREAK     ! end of the original block
+          END
+          Result = Result & '}'
+          CYCLE
+        END
+
+        Result = Result & ch
+        i += 1
+      END
+      CYCLE
+    END
+
+
+    ! 2) Quoted literal block: support '...' and "..." with doubled quotes
+    IF ch = '''' OR ch = '"'
+      QuoteChar = ch
+      i += 1
+      LOOP WHILE i <= len
+        ch = Fmt[i]
+        IF ch = QuoteChar
+          ! doubled quote inside quotes -> output one and skip second
+          IF i < len AND Fmt[i + 1] = QuoteChar
+            Result = Result & QuoteChar
+            i += 2
+            CYCLE
+          END
+          i += 1       ! consume closing quote
+          BREAK
+        END
+        Result = Result & ch
+        i += 1
+      END
+      CYCLE
+    END
+
+    ! 3) Normal token run-length grouping (d/h/H/m/s/f) or literal fallback
+    n = 1
+    LOOP WHILE i + n <= len AND Fmt[i + n] = ch
+      n += 1
+    END
+
+    CASE ch
+    OF 'd'  ! days (total days)
+      IF n >= 2
+        Result = Result & FORMAT(days, @N02)
+      ELSE
+        Result = Result & days
+      END
+
+    OF 'H'  ! TOTAL hours (non-.NET convenience)
+      IF n >= 2
+        Result = Result & FORMAT(totHours, @N02)
+      ELSE
+        Result = Result & totHours
+      END
+
+    OF 'h'  ! hours component (0..23)
+      IF n >= 2
+        Result = Result & FORMAT(hours, @N02)
+      ELSE
+        Result = Result & hours
+      END
+
+    OF 'm'  ! minutes component (0..59)
+      IF n >= 2
+        Result = Result & FORMAT(minutes, @N02)
+      ELSE
+        Result = Result & minutes
+      END
+
+    OF 's'  ! seconds component (0..59)
+      IF n >= 2
+        Result = Result & FORMAT(seconds, @N02)
+      ELSE
+        Result = Result & seconds
+      END
+
+    OF 'f'  ! fractional seconds (hundredths). Support up to ff; pad beyond with zeros.
+      CASE n
+      OF 1 ; Result = Result & FORMAT(hundredths / 10, @N1)   ! tenths
+      OF 2 ; Result = Result & FORMAT(hundredths, @N02)        ! hundredths
+      ELSE
+        Result = Result & FORMAT(hundredths, @N02) & ALL('0', n - 2)
+      END
+
+    ELSE
+      ! literal: repeat ch n times
+      LOOP n TIMES
+        Result = Result & ch
+      END
+    END
+
+    i += n
+  END
+
+  RETURN Result

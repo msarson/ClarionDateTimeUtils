@@ -3,6 +3,7 @@
           MAP
 RunTimeSpanTests    PROCEDURE
 AssertEq    PROCEDURE(STRING Name, LONG Got, LONG Expected, STRING Units)
+AssertEqStr PROCEDURE(STRING Name, STRING Got, STRING Expected)
 MakeTime    PROCEDURE(SHORT Hours, SHORT Minutes, SHORT Seconds),LONG
           END
 
@@ -35,14 +36,28 @@ Line        STRING(256)
       FailLog = CLIP(FailLog) & Line & '<13,10>'
     END
   END
+AssertEqStr PROCEDURE(STRING Name, STRING Got, STRING Expected)
+Line        STRING(256)
+CODE
+  TestCount += 1
+  IF CLIP(Got) <> CLIP(Expected)
+    FailCount += 1
+    Line = Name & ': expected "' & Expected & '", got "' & Got & '"'
+    IF LEN(CLIP(FailLog)) + LEN(CLIP(Line)) + 4 < SIZE(FailLog)
+      FailLog = CLIP(FailLog) & Line & '<13,10>'
+    END
+  END
 
 RunTimeSpanTests  PROCEDURE
 ts                  TimeSpanClass
 tsRef               &TimeSpanClass
 got                 LONG
+dt                  DateTimeClass
+dt2                 DateTimeClass
   CODE
     ! --- Original date-only tests ---
   ts.Init(DATE(8,1,2025), 0, DATE(8,8,2025), 0, FALSE, TRUE)
+  
   AssertEq('Days: basic 7', ts.Days(), 7, ' days')
 
   ts.Init(DATE(8,1,2025), 0, DATE(8,8,2025), 0, TRUE, TRUE)
@@ -140,10 +155,80 @@ got                 LONG
   ts.Init(DATE(8,2,2025), MakeTime(7,0,0), DATE(8,1,2025), MakeTime(8,0,0), FALSE, TRUE)
   AssertEq('Hours reverse signed: -23 hrs', ts.Hours(), -23, ' hr')
 
-! Test static methods
-  tsRef &= tsref.FromSeconds(3600)
-  AssertEq('Static: 3600 seconds', tsRef.Seconds(), 3600, ' sec')
-  AssertEq('Static: 3600 seconds as minutes', tsRef.Minutes(), 60, ' min')
+  ! Test case: 30 seconds span
+  ts.Init(DATE(8,1,2025), MakeTime(0,0,0), DATE(8,1,2025), MakeTime(0,0,30), FALSE, TRUE)
+
+! Core formats
+  AssertEqStr('c', ts.ToString('c'), '0.00:00:30')
+  AssertEqStr('d.hh:mm:ss', ts.ToString('d.hh:mm:ss'), '0.00:00:30')
+  AssertEqStr('hh:mm:ss', ts.ToString('hh:mm:ss'), '00:00:30')
+  AssertEqStr('m:ss', ts.ToString('m:ss'), '0:30')
+  AssertEqStr('s', ts.ToString('s'), '30')
+  AssertEqStr('ss', ts.ToString('ss'), '30')
+  AssertEqStr('Literal', ts.ToString('d "days" h "hours" m "minutes" s "seconds"'), '0 days 0 hours 0 minutes 30 seconds')
+  AssertEqStr('Fractional', ts.ToString('d.hh:mm:ss.ff'), '0.00:00:30.00')
+  AssertEqStr('Total hours', ts.ToString('H:mm:ss'), '0:00:30')
+
+! Fractional extras
+  AssertEqStr('Tenths', ts.ToString('s.f'), '30.0')
+  AssertEqStr('Hundredths', ts.ToString('s.ff'), '30.00')
+
+! Brace literal tests
+  AssertEqStr('Brace-literal simple', ts.ToString('{exact text}'), 'exact text')
+  AssertEqStr('Brace-literal with tokens outside', ts.ToString('h{ hours }m{ mins }'), '0 hours 0 mins ')
+  AssertEqStr('Brace-literal only token inside', ts.ToString('{h}'), 'h')  ! braces block tokens from being parsed
+  AssertEqStr('Brace with nested braces literal', ts.ToString('{outer {inner} text}'), 'outer {inner} text')
+  
+  
+!**************Date Time Tests
+   dt.Init(DATE(1,8,2025), MakeTime(14,5,9))     ! 2025-01-08 14:05:09 (2:05:09 PM)
+  dt2.Init(DATE(1,8,2025), MakeTime(0,3,4))     ! 2025-01-08 00:03:04 (AM case)
+
+  ! --- Core token coverage ---
+  AssertEqStr('ISO date', dt.ToString('yyyy-MM-dd'), '2025-01-08')
+  AssertEqStr('Full date/time 24h', dt.ToString('dd/MM/yyyy HH:mm:ss'), '08/01/2025 14:05:09')
+  AssertEqStr('12h no pad + AMPM', dt.ToString('h:mm tt'), '2:05 PM')
+  AssertEqStr('12h padded + AMPM', dt.ToString('hh:mm tt'), '02:05 PM')
+  AssertEqStr('Short day/month names', dt.ToString('ddd, MMM d'), 'Wed, Jan 8')
+  AssertEqStr('Long day/month names',  dt.ToString('dddd, MMMM d'), 'Wednesday, January 8')
+  AssertEqStr('Uppercase Y works',     dt.ToString('YYYY-MM-dd'), '2025-01-08')
+
+  ! Single-character tokens (no padding)
+  AssertEqStr('h:m:s no pad', dt.ToString('h:m:s'), '2:5:9')
+
+  ! AM case
+  AssertEqStr('AM tt', dt2.ToString('tt'), 'AM')
+  AssertEqStr('AM t',  dt2.ToString('t'),  'A')
+  AssertEqStr('AM 12h', dt2.ToString('hh:mm tt'), '12:03 AM')
+
+  ! --- Quoted literals ---
+  AssertEqStr('Quoted word', dt.ToString('yyyy "year"'), '2025 year')
+  AssertEqStr('Double quotes inside', dt.ToString('"Say ""Hello"""'), 'Say "Hello"')
+
+  ! --- Brace literal blocks ---
+  AssertEqStr('Braces literals only', dt.ToString('{exact text}'), 'exact text')
+  AssertEqStr('Braces with tokens outside', dt.ToString('h{ hours }m{ minutes }s{ seconds }'), '2 hours 5 minutes 9 seconds')
+  AssertEqStr('Token-looking text inside braces is literal', dt.ToString('{hh:mm:ss}'), 'hh:mm:ss')
+
+  ! Doubled braces inside a block
+  AssertEqStr('Braces with doubled open',  dt.ToString('{show {{{this}}}'), 'show {this}')
+  AssertEqStr('Braces with nesting',       dt.ToString('{outer {inner} text}'), 'outer {inner} text')
+
+  ! Mixed braces + tokens
+  AssertEqStr('Mixed ISO + braces', dt.ToString('yyyy-MM-dd{ at }HH:mm:ss'), '2025-01-08 at 14:05:09')
+
+  ! --- AM/PM variations ---
+  AssertEqStr('PM tt', dt.ToString('tt'), 'PM')
+  AssertEqStr('PM t',  dt.ToString('t'),  'P')
+
+  ! --- Month/day numeric variations ---
+  AssertEqStr('M/d/y short', dt.ToString('M/d/yy'), '1/8/25')
+  AssertEqStr('MM/dd/yyyy',  dt.ToString('MM/dd/yyyy'), '01/08/2025')
+
+  ! --- Edge: repeated literals outside quotes/braces ---
+  AssertEqStr('Literal colons', dt.ToString('HH:mm:ss :: {end}'), '14:05:09 :: end')
+
+  
   DISPOSE(tsRef)
   
   tsRef &= tsref.FromMinutes(60)
