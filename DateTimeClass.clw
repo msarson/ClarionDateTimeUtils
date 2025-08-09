@@ -34,7 +34,7 @@ TotalTicks              LONG
   TotalTicks = pHour       * TICKS:PerHour   + |
     pMins       * TICKS:PerMinute + |
     pSeconds    * TICKS:PerSecond + |
-    pHundredths
+    pHundredths + 1  ! Add 1 to make it a valid Clarion Time
 
   ! wrap into valid Clarion TIME range (0 .. TICKS:PerDay-1)
   TotalTicks = TotalTicks % TICKS:PerDay
@@ -103,7 +103,7 @@ FirstDayOfYear              LONG
   CurrentYear = YEAR(SELF.Date)
 
     ! Calculate the first day of the current year (January 1)
-  FirstDayOfYear = DATE(CurrentYear, 1, 1)
+  FirstDayOfYear = DATE(1, 1, CurrentYear)
 
     ! Calculate days since January 1st of the current year, plus 1
   RETURN SELF.Date - FirstDayOfYear + 1
