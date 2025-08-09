@@ -65,6 +65,8 @@ Format tokens for TimeSpanClass.ToString:
 - `f`: Fractional seconds (tenths)
 - `ff`: Fractional seconds (hundredths)
 
+For detailed documentation on ToString formatting, see [ToString Documentation](ToString_Documentation.md).
+
 ## DateTimeClass Methods
 - `DayOfWeek()`: Returns the day of week (1=Sunday, 2=Monday, ..., 7=Saturday)
 - `DayOfYear()`: Returns the day of year (1-366)
@@ -92,6 +94,8 @@ Format tokens for DateTimeClass.ToString:
 - `t`: AM/PM designator (first character)
 - `tt`: AM/PM designator (full)
 
+For detailed documentation on ToString formatting, see [ToString Documentation](ToString_Documentation.md).
+
 ## Notes
 - TIME is in 1/100 seconds since midnight (Clarion TIME).
 - includeEnd: when TRUE, adds 1 unit to the result (consistently applied across all time units).
@@ -101,4 +105,4 @@ Format tokens for DateTimeClass.ToString:
 - Open the solution `TimeSpanClassTest.sln` in Clarion/IDE and build.
 
 ## License
-- MIT (or your preferred license).
+- MIT
