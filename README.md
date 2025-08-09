@@ -105,4 +105,4 @@ For detailed documentation on ToString formatting, see [ToString Documentation](
 - Open the solution `TimeSpanClassTest.sln` in Clarion/IDE and build.
 
 ## License
-- MIT
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
